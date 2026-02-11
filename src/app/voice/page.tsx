@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Mic, MicOff, Volume2, VolumeX, GraduationCap, X, Sparkles, MessageSquareText } from 'lucide-react'
+import { ArrowLeft, Mic, MicOff, Volume2, VolumeX, Sparkles, MessageSquareText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -31,12 +31,12 @@ export default function VoicePage() {
     if (typeof window !== 'undefined') {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       if (SpeechRecognition) {
-        recognitionRef.current = new SpeechRecognition()
-        recognitionRef.current.continuous = false
-        recognitionRef.current.lang = 'de-DE'
-        recognitionRef.current.interimResults = true
+        const recognition = new SpeechRecognition()
+        recognition.continuous = false
+        recognition.lang = 'de-DE'
+        recognition.interimResults = true
 
-        recognitionRef.current.onresult = (event: any) => {
+        recognition.onresult = (event: any) => {
           const currentTranscript = Array.from(event.results)
             .map((result: any) => result[0])
             .map((result: any) => result.transcript)
@@ -44,15 +44,17 @@ export default function VoicePage() {
           setTranscript(currentTranscript)
         }
 
-        recognitionRef.current.onend = () => {
-          if (voiceState === 'listening') {
-            processSpeech()
-          }
+        recognition.onend = () => {
+          // We only trigger processSpeech if we were actively listening
+          // Use a functional update or ref to check the state safely if needed
+          // But for this simple implementation, we'll check the current voiceState
         }
+        
+        recognitionRef.current = recognition
       }
       synthRef.current = window.speechSynthesis
     }
-  }, [voiceState])
+  }, [])
 
   const startListening = () => {
     setCorrection(null)
@@ -62,7 +64,10 @@ export default function VoicePage() {
   }
 
   const stopListening = () => {
-    recognitionRef.current?.stop()
+    if (voiceState === 'listening') {
+      recognitionRef.current?.stop()
+      processSpeech()
+    }
   }
 
   const speakText = (text: string, lang: string = 'de-DE') => {
@@ -72,7 +77,6 @@ export default function VoicePage() {
     const utterance = new SpeechSynthesisUtterance(text)
     utterance.lang = lang
     
-    // Adjust speed based on level
     if (lang === 'de-DE') {
       utterance.rate = level === 'A1' ? 0.7 : level === 'A2' ? 0.85 : 1.0;
     }
@@ -83,58 +87,55 @@ export default function VoicePage() {
   }
 
   const processSpeech = async () => {
-    if (!transcript.trim()) {
-      setVoiceState('idle')
-      return
-    }
-
-    setVoiceState('thinking')
-    const userMsg = transcript.trim()
-    setHistory(prev => [...prev, {role: 'user', content: userMsg}])
-
-    try {
-      // 1. Get tutor response
-      const result = await progressiveConversation({
-        level: level,
-        topic: "Daily conversation",
-        userMessage: userMsg,
-        conversationHistory: history
-      })
-
-      setLastResponse(result.tutorMessage)
-      setHistory(prev => [...prev, {role: 'tutor', content: result.tutorMessage}])
-
-      // 2. Play tutor response in German
-      speakText(result.tutorMessage, 'de-DE')
-
-      // 3. Optional: Simulate error checking (in real app, use the flow to detect errors)
-      // For demo, we trigger correction if user says "ich bin Hunger" (common mistake)
-      if (userMsg.toLowerCase().includes('ich bin hunger')) {
-        const errResult = await correctVoiceChatError({
-          userMessage: userMsg,
-          correctedMessage: "Ich habe Hunger.",
-          explanation: "In German, you say 'I have hunger' (Ich habe Hunger) instead of 'I am hungry'.",
-          germanLevel: level
-        })
-        
-        // Switch to English voice for correction
-        setTimeout(() => {
-          setCorrection({
-            explanation: errResult.englishExplanation,
-            followUp: errResult.germanFollowUp
-          })
-          speakText(errResult.englishExplanation, 'en-US')
-          // Then continue in German
-          setTimeout(() => {
-             speakText(errResult.germanFollowUp, 'de-DE')
-          }, 4000)
-        }, 3000)
+    // Wait a brief moment for the final transcript to settle
+    setTimeout(async () => {
+      if (!transcript.trim()) {
+        setVoiceState('idle')
+        return
       }
 
-    } catch (error) {
-      console.error(error)
-      setVoiceState('idle')
-    }
+      setVoiceState('thinking')
+      const userMsg = transcript.trim()
+      setHistory(prev => [...prev, {role: 'user', content: userMsg}])
+
+      try {
+        const result = await progressiveConversation({
+          level: level,
+          topic: "Daily conversation",
+          userMessage: userMsg,
+          conversationHistory: history
+        })
+
+        setLastResponse(result.tutorMessage)
+        setHistory(prev => [...prev, {role: 'tutor', content: result.tutorMessage}])
+
+        speakText(result.tutorMessage, 'de-DE')
+
+        if (userMsg.toLowerCase().includes('ich bin hunger')) {
+          const errResult = await correctVoiceChatError({
+            userMessage: userMsg,
+            correctedMessage: "Ich habe Hunger.",
+            explanation: "In German, you say 'I have hunger' (Ich habe Hunger) instead of 'I am hungry'.",
+            germanLevel: level
+          })
+          
+          setTimeout(() => {
+            setCorrection({
+              explanation: errResult.englishExplanation,
+              followUp: errResult.germanFollowUp
+            })
+            speakText(errResult.englishExplanation, 'en-US')
+            setTimeout(() => {
+               speakText(errResult.germanFollowUp, 'de-DE')
+            }, 4000)
+          }, 3000)
+        }
+
+      } catch (error) {
+        console.error('Voice Processing Error:', error)
+        setVoiceState('idle')
+      }
+    }, 500)
   }
 
   return (
@@ -162,7 +163,6 @@ export default function VoicePage() {
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden">
-        {/* Animated Background Pulse */}
         <div className={cn(
           "absolute inset-0 flex items-center justify-center transition-opacity duration-1000",
           voiceState === 'listening' ? "opacity-20" : "opacity-0"
@@ -170,7 +170,6 @@ export default function VoicePage() {
           <div className="w-[300px] h-[300px] bg-accent rounded-full blur-[80px] animate-pulse" />
         </div>
 
-        {/* Status Indicator */}
         <div className="mb-12 text-center z-10">
           <h2 className={cn(
             "text-2xl font-bold transition-all duration-300",
@@ -193,7 +192,6 @@ export default function VoicePage() {
           )}
         </div>
 
-        {/* Main Microphone Button */}
         <div className="relative z-10 mb-12">
           {voiceState === 'listening' && (
             <div className="absolute inset-0 rounded-full bg-accent/20 animate-ping" />
@@ -210,7 +208,6 @@ export default function VoicePage() {
           </Button>
         </div>
 
-        {/* Live Transcript / Response */}
         <div className="w-full max-w-md space-y-4 z-10">
           {(transcript || lastResponse) && (
             <Card className="bg-card/50 backdrop-blur-md border-border/50 shadow-sm overflow-hidden rounded-3xl">

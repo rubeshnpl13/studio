@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useRef, useEffect, useSearchParams } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useSearchParams as getParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Send, Sparkles, AlertCircle, RefreshCw, GraduationCap } from 'lucide-react'
+import { ArrowLeft, Send, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -29,13 +29,12 @@ export default function ChatPage() {
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    // Initial tutor message
     const greet = async () => {
       setIsTyping(true)
       const greeting = level === 'A1' ? "Hallo! Wie geht es dir?" : 
                        level === 'A2' ? "Guten Tag! Worüber möchtest du heute sprechen?" :
                        level === 'B1' ? "Hallo! Hast du heute etwas Interessantes erlebt?" :
-                       "Herzlich willkommen! Möchtest du über ein aktuelles Thema diskutieren?";
+                       "Herzlich willkommen! Möchtest du over ein aktuelles Thema diskutieren?";
       
       setTimeout(() => {
         setMessages([{
@@ -87,7 +86,7 @@ export default function ChatPage() {
 
       setMessages(prev => [...prev, tutorResponse])
     } catch (error) {
-      console.error(error)
+      console.error('Chat Feedback Error:', error)
       const errorMsg: Message = {
         role: 'tutor',
         content: "Entschuldigung, ich habe ein technisches Problem. Können wir das noch einmal versuchen?",
@@ -158,8 +157,8 @@ export default function ChatPage() {
               <div className="flex items-center gap-2 text-muted-foreground animate-pulse ml-2">
                 <div className="flex gap-1">
                   <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full" />
-                  <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animation-delay-100" />
-                  <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full animation-delay-200" />
+                  <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full" />
+                  <span className="w-1.5 h-1.5 bg-muted-foreground rounded-full" />
                 </div>
                 <span className="text-xs font-medium">Tutor schreibt...</span>
               </div>

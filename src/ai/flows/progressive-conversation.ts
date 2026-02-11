@@ -41,14 +41,9 @@ const prompt = ai.definePrompt({
   The user will send a message in German, and your job is to respond in German, and help them improve their German language skills.
   The CEFR level is an important aspect of this task. You should use vocabulary appropriate for the level, keep sentence structure appropriate for the level, and correct any mistakes that the user makes.
 
-  Here's the conversation history:
+  Conversation History:
   {{#each conversationHistory}}
-    {{#ifEquals role 'user'}}
-      User: {{{content}}}
-    {{/ifEquals}}
-    {{#ifEquals role 'tutor'}}
-      Tutor: {{{content}}}
-    {{/ifEquals}}
+    {{role}}: {{{content}}}
   {{/each}}
 
   User: {{{userMessage}}}
