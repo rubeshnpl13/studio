@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useRef, useEffect, Suspense } from 'react'
@@ -58,7 +59,7 @@ function ChatContent() {
           timestamp: new Date()
         }])
         setIsTyping(false)
-      }, 1000)
+      }, 500)
     }
     greet()
   }, [level])
@@ -104,15 +105,20 @@ function ChatContent() {
     } catch (error: any) {
       console.error('Chat Feedback Error:', error)
       
+      const isQuotaError = error.message?.includes('429') || error.message?.includes('quota');
+      
       toast({
         variant: "destructive",
-        title: "Connection Error",
-        description: "Something went wrong. Please check your internet connection."
+        title: isQuotaError ? "AI is taking a break" : "Connection Error",
+        description: isQuotaError 
+          ? "We've hit the usage limit. Please wait about 60 seconds and try sending your message again."
+          : "Something went wrong. Please check your internet connection."
       })
 
       const errorMsg: Message = {
         role: 'tutor',
-        content: "Entschuldigung, ich habe ein technisches Problem. Können wir das noch einmal versuchen?",
+        content: "Entschuldigung, ich habe ein technisches Problem. Können wir das in einer Minute noch einmal versuchen?",
+        translation: "Sorry, I'm having a technical problem. Can we try again in a minute?",
         timestamp: new Date()
       }
       setMessages(prev => [...prev, errorMsg])

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from 'react'
@@ -34,7 +35,7 @@ export default function Home() {
               <GraduationCap className="text-white w-10 h-10" />
             </div>
           </div>
-          <h1 className="text-5xl font-extrabold tracking-tight text-primary">Deutch</h1>
+          <h1 className="text-5xl font-extrabold tracking-tight text-primary">Deutsch</h1>
           <p className="text-muted-foreground text-lg">Your personal German language buddy.</p>
         </header>
 

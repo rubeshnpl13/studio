@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect, useRef } from 'react'
@@ -19,7 +20,6 @@ export default function VoicePage() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const level = (searchParams.get('level') || 'A1') as CEFRLevel
-  const [voiceState, setVoiceState] = 'idle' as any;
   const [voiceMode, setVoiceMode] = useState<VoiceState>('idle')
   const [transcript, setTranscript] = useState<string>('')
   const [lastResponse, setLastResponse] = useState<string>('')
@@ -29,9 +29,6 @@ export default function VoicePage() {
 
   const recognitionRef = useRef<any>(null)
   const synthRef = useRef<SpeechSynthesis | null>(null)
-
-  // Mapping state to match component logic
-  const currentVoiceState = voiceMode;
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -99,6 +96,7 @@ export default function VoicePage() {
 
     setVoiceMode('thinking')
     const userMsg = transcript.trim()
+    const currentHistory = [...history]
     setHistory(prev => [...prev, {role: 'user', content: userMsg}])
 
     try {
@@ -106,7 +104,7 @@ export default function VoicePage() {
         level: level,
         topic: "Daily conversation",
         userMessage: userMsg,
-        conversationHistory: history
+        conversationHistory: currentHistory
       })
 
       setLastResponse(result.tutorMessage)
@@ -114,11 +112,11 @@ export default function VoicePage() {
 
       speakText(result.tutorMessage, 'de-DE')
 
-      // Simple common mistake detection for A1 level
-      if (userMsg.toLowerCase().includes('ich bin hunger')) {
+      // Simple common mistake detection
+      if (userMsg.toLowerCase().includes('ich bin hunger') || userMsg.toLowerCase().includes('ich bin durst')) {
         const errResult = await correctVoiceChatError({
           userMessage: userMsg,
-          correctedMessage: "Ich habe Hunger.",
+          correctedMessage: userMsg.toLowerCase().includes('hunger') ? "Ich habe Hunger." : "Ich habe Durst.",
           explanation: "In German, you say 'I have hunger' (Ich habe Hunger) instead of 'I am hungry'.",
           germanLevel: level
         })
@@ -139,10 +137,14 @@ export default function VoicePage() {
       console.error('Voice Processing Error:', error)
       setVoiceMode('idle')
       
+      const isQuotaError = error.message?.includes('429') || error.message?.includes('quota');
+      
       toast({
         variant: "destructive",
-        title: "Connection Error",
-        description: "Something went wrong. Please check your internet connection and try again."
+        title: isQuotaError ? "Quota Limit Reached" : "Connection Error",
+        description: isQuotaError 
+          ? "The AI needs a minute to rest. Please try speaking again in about 60 seconds."
+          : "Something went wrong. Please check your internet connection and try again."
       })
     }
   }
@@ -174,7 +176,7 @@ export default function VoicePage() {
       <main className="flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden">
         <div className={cn(
           "absolute inset-0 flex items-center justify-center transition-opacity duration-1000",
-          currentVoiceState === 'listening' ? "opacity-20" : "opacity-0"
+          voiceMode === 'listening' ? "opacity-20" : "opacity-0"
         )}>
           <div className="w-[300px] h-[300px] bg-accent rounded-full blur-[80px] animate-pulse" />
         </div>
@@ -182,15 +184,15 @@ export default function VoicePage() {
         <div className="mb-12 text-center z-10">
           <h2 className={cn(
             "text-2xl font-bold transition-all duration-300",
-            currentVoiceState === 'idle' ? "text-foreground/40" : "text-foreground"
+            voiceMode === 'idle' ? "text-foreground/40" : "text-foreground"
           )}>
-            {currentVoiceState === 'idle' && "Tap the mic to speak"}
-            {currentVoiceState === 'listening' && "Listening..."}
-            {currentVoiceState === 'thinking' && "Thinking..."}
-            {currentVoiceState === 'speaking' && "Tutor Speaking"}
+            {voiceMode === 'idle' && "Tap the mic to speak"}
+            {voiceMode === 'listening' && "Listening..."}
+            {voiceMode === 'thinking' && "Thinking..."}
+            {voiceMode === 'speaking' && "Tutor Speaking"}
           </h2>
           
-          {currentVoiceState === 'speaking' && (
+          {voiceMode === 'speaking' && (
             <div className="flex justify-center mt-4">
               <div className="voice-indicator-bar" />
               <div className="voice-indicator-bar" />
@@ -202,18 +204,18 @@ export default function VoicePage() {
         </div>
 
         <div className="relative z-10 mb-12">
-          {currentVoiceState === 'listening' && (
+          {voiceMode === 'listening' && (
             <div className="absolute inset-0 rounded-full bg-accent/20 animate-ping" />
           )}
           <Button
             size="lg"
             className={cn(
               "w-28 h-28 rounded-full shadow-2xl transition-all duration-500",
-              currentVoiceState === 'listening' ? "bg-accent hover:bg-accent scale-110" : "bg-primary hover:bg-primary/90"
+              voiceMode === 'listening' ? "bg-accent hover:bg-accent scale-110" : "bg-primary hover:bg-primary/90"
             )}
-            onClick={currentVoiceState === 'listening' ? stopListening : startListening}
+            onClick={voiceMode === 'listening' ? stopListening : startListening}
           >
-            {currentVoiceState === 'listening' ? <MicOff className="w-10 h-10" /> : <Mic className="w-10 h-10" />}
+            {voiceMode === 'listening' ? <MicOff className="w-10 h-10" /> : <Mic className="w-10 h-10" />}
           </Button>
         </div>
 
@@ -222,7 +224,7 @@ export default function VoicePage() {
             <Card className="bg-card/50 backdrop-blur-md border-border/50 shadow-sm overflow-hidden rounded-3xl">
               <CardContent className="p-6">
                 <div className="flex items-center gap-2 mb-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  {currentVoiceState === 'listening' ? (
+                  {voiceMode === 'listening' ? (
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                       Live Transcript
@@ -238,7 +240,7 @@ export default function VoicePage() {
                    {transcript && (
                      <p className="text-lg font-medium leading-tight">"{transcript}"</p>
                    )}
-                   {currentVoiceState !== 'listening' && lastResponse && (
+                   {voiceMode !== 'listening' && lastResponse && (
                      <p className="text-base text-primary leading-tight font-medium italic">{lastResponse}</p>
                    )}
                 </div>
