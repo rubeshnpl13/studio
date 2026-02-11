@@ -15,6 +15,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useToast } from '@/hooks/use-toast'
 import { textChatFeedback, TextChatFeedbackOutput } from '@/ai/flows/text-chat-feedback'
 import { CEFRLevel } from '@/lib/store'
 import { cn } from '@/lib/utils'
@@ -29,6 +30,7 @@ type Message = {
 
 function ChatContent() {
   const searchParams = useSearchParams()
+  const { toast } = useToast()
   const level = (searchParams.get('level') || 'A1') as CEFRLevel
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -99,11 +101,24 @@ function ChatContent() {
       }
 
       setMessages(prev => [...prev, tutorResponse])
-    } catch (error) {
+    } catch (error: any) {
       console.error('Chat Feedback Error:', error)
+      
+      const isRateLimit = error.message?.includes('429') || JSON.stringify(error).includes('429')
+      
+      toast({
+        variant: "destructive",
+        title: isRateLimit ? "Tutor is busy" : "Connection Error",
+        description: isRateLimit 
+          ? "The AI tutor is currently receiving too many requests. Please wait about 30-60 seconds before trying again."
+          : "Something went wrong. Please check your internet connection."
+      })
+
       const errorMsg: Message = {
         role: 'tutor',
-        content: "Entschuldigung, ich habe ein technisches Problem. Können wir das noch einmal versuchen?",
+        content: isRateLimit 
+          ? "Entschuldigung, ich bin gerade etwas überlastet. Kannst du bitte einen Moment warten und es dann noch einmal versuchen?"
+          : "Entschuldigung, ich habe ein technisches Problem. Können wir das noch einmal versuchen?",
         timestamp: new Date()
       }
       setMessages(prev => [...prev, errorMsg])

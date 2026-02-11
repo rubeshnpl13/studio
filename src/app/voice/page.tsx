@@ -7,6 +7,7 @@ import { ArrowLeft, Mic, MicOff, Volume2, VolumeX, Sparkles, MessageSquareText }
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { useToast } from '@/hooks/use-toast'
 import { CEFRLevel } from '@/lib/store'
 import { progressiveConversation } from '@/ai/flows/progressive-conversation'
 import { correctVoiceChatError } from '@/ai/flows/voice-chat-error-correction'
@@ -16,6 +17,7 @@ type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
 export default function VoicePage() {
   const searchParams = useSearchParams()
+  const { toast } = useToast()
   const level = (searchParams.get('level') || 'A1') as CEFRLevel
   const [voiceState, setVoiceState] = useState<VoiceState>('idle')
   const [transcript, setTranscript] = useState<string>('')
@@ -39,22 +41,22 @@ export default function VoicePage() {
         recognition.onresult = (event: any) => {
           const currentTranscript = Array.from(event.results)
             .map((result: any) => result[0])
-            .map((result: any) => result.transcript)
+            .map((result: any) => (result as any).transcript)
             .join('')
           setTranscript(currentTranscript)
         }
 
         recognition.onend = () => {
-          // We only trigger processSpeech if we were actively listening
-          // Use a functional update or ref to check the state safely if needed
-          // But for this simple implementation, we'll check the current voiceState
+          if (voiceState === 'listening') {
+            processSpeech()
+          }
         }
         
         recognitionRef.current = recognition
       }
       synthRef.current = window.speechSynthesis
     }
-  }, [])
+  }, [voiceState])
 
   const startListening = () => {
     setCorrection(null)
@@ -66,7 +68,6 @@ export default function VoicePage() {
   const stopListening = () => {
     if (voiceState === 'listening') {
       recognitionRef.current?.stop()
-      processSpeech()
     }
   }
 
@@ -87,55 +88,63 @@ export default function VoicePage() {
   }
 
   const processSpeech = async () => {
-    // Wait a brief moment for the final transcript to settle
-    setTimeout(async () => {
-      if (!transcript.trim()) {
-        setVoiceState('idle')
-        return
-      }
+    if (!transcript.trim()) {
+      setVoiceState('idle')
+      return
+    }
 
-      setVoiceState('thinking')
-      const userMsg = transcript.trim()
-      setHistory(prev => [...prev, {role: 'user', content: userMsg}])
+    setVoiceState('thinking')
+    const userMsg = transcript.trim()
+    setHistory(prev => [...prev, {role: 'user', content: userMsg}])
 
-      try {
-        const result = await progressiveConversation({
-          level: level,
-          topic: "Daily conversation",
+    try {
+      const result = await progressiveConversation({
+        level: level,
+        topic: "Daily conversation",
+        userMessage: userMsg,
+        conversationHistory: history
+      })
+
+      setLastResponse(result.tutorMessage)
+      setHistory(prev => [...prev, {role: 'tutor', content: result.tutorMessage}])
+
+      speakText(result.tutorMessage, 'de-DE')
+
+      // Simple common mistake detection for A1 level
+      if (userMsg.toLowerCase().includes('ich bin hunger')) {
+        const errResult = await correctVoiceChatError({
           userMessage: userMsg,
-          conversationHistory: history
+          correctedMessage: "Ich habe Hunger.",
+          explanation: "In German, you say 'I have hunger' (Ich habe Hunger) instead of 'I am hungry'.",
+          germanLevel: level
         })
-
-        setLastResponse(result.tutorMessage)
-        setHistory(prev => [...prev, {role: 'tutor', content: result.tutorMessage}])
-
-        speakText(result.tutorMessage, 'de-DE')
-
-        if (userMsg.toLowerCase().includes('ich bin hunger')) {
-          const errResult = await correctVoiceChatError({
-            userMessage: userMsg,
-            correctedMessage: "Ich habe Hunger.",
-            explanation: "In German, you say 'I have hunger' (Ich habe Hunger) instead of 'I am hungry'.",
-            germanLevel: level
+        
+        setTimeout(() => {
+          setCorrection({
+            explanation: errResult.englishExplanation,
+            followUp: errResult.germanFollowUp
           })
-          
+          speakText(errResult.englishExplanation, 'en-US')
           setTimeout(() => {
-            setCorrection({
-              explanation: errResult.englishExplanation,
-              followUp: errResult.germanFollowUp
-            })
-            speakText(errResult.englishExplanation, 'en-US')
-            setTimeout(() => {
-               speakText(errResult.germanFollowUp, 'de-DE')
-            }, 4000)
-          }, 3000)
-        }
-
-      } catch (error) {
-        console.error('Voice Processing Error:', error)
-        setVoiceState('idle')
+             speakText(errResult.germanFollowUp, 'de-DE')
+          }, 4000)
+        }, 3000)
       }
-    }, 500)
+
+    } catch (error: any) {
+      console.error('Voice Processing Error:', error)
+      setVoiceState('idle')
+      
+      const isRateLimit = error.message?.includes('429') || JSON.stringify(error).includes('429')
+      
+      toast({
+        variant: "destructive",
+        title: isRateLimit ? "Tutor is busy" : "Connection Error",
+        description: isRateLimit 
+          ? "The AI tutor is currently receiving too many requests. Please wait about 30-60 seconds before trying again."
+          : "Something went wrong. Please check your internet connection and try again."
+      })
+    }
   }
 
   return (
