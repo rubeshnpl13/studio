@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { CEFRLevel } from '@/lib/store'
 import { progressiveConversation } from '@/ai/flows/progressive-conversation'
 import { correctVoiceChatError } from '@/ai/flows/voice-chat-error-correction'
-import { cn } from '@/lib/utils"
+import { cn } from '@/lib/utils'
 
 type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 

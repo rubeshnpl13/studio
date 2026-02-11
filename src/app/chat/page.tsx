@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { textChatFeedback, TextChatFeedbackOutput } from '@/ai/flows/text-chat-feedback'
 import { CEFRLevel } from '@/lib/store'
-import { cn } from '@/lib/utils"
+import { cn } from '@/lib/utils'
 
 type Message = {
   role: 'user' | 'tutor';
