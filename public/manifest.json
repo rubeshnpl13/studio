@@ -1,0 +1,23 @@
+{
+  "name": "Sprachheld",
+  "short_name": "Sprachheld",
+  "description": "AI-powered German Language Tutor",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#E3F2FD",
+  "theme_color": "#3F51B5",
+  "icons": [
+    {
+      "src": "https://picsum.photos/seed/spr-192/192/192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://picsum.photos/seed/spr-512/512/512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
