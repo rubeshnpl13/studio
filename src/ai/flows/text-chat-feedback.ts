@@ -27,6 +27,7 @@ const TextChatFeedbackOutputSchema = z.object({
   correctedText: z.string().describe('The corrected German text.'),
   explanation: z.string().describe('The explanation of the corrections in English.'),
   followUpQuestion: z.string().describe('A follow-up question in German to continue the conversation.'),
+  englishTranslation: z.string().describe('The English translation of the follow-up question.'),
 });
 export type TextChatFeedbackOutput = z.infer<typeof TextChatFeedbackOutputSchema>;
 
@@ -53,10 +54,14 @@ const prompt = ai.definePrompt({
   Correct any grammar and vocabulary mistakes in the student's input.
   Provide explanations for the corrections in English, including the correct German form.
   Ask a follow-up question in German to keep the conversation going, appropriate for the student's level.
+  Provide an English translation for that follow-up question.
+
   The output should be formatted as a JSON object with the following keys:
   - correctedText: The corrected German text.
   - explanation: The explanation of the corrections in English.
-  - followUpQuestion: A follow-up question in German to continue the conversation.
+  - followUpQuestion: The follow-up question in German.
+  - englishTranslation: The English translation of the follow-up question.
+
   Remember to adapt your vocabulary and grammar to the student's language level.
   `,
 });

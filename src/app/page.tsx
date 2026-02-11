@@ -35,7 +35,7 @@ export default function Home() {
             </div>
           </div>
           <h1 className="text-5xl font-extrabold tracking-tight text-primary">Sprachheld</h1>
-          <p className="text-muted-foreground text-lg">Your personal German language hero.</p>
+          <p className="text-muted-foreground text-lg">Your personal German language buddy.</p>
         </header>
 
         <section className="space-y-6">
@@ -93,7 +93,7 @@ export default function Home() {
 
         <footer className="text-center">
           <p className="text-xs text-muted-foreground/60">
-            Powered by GenAI • ElevenLabs • PWA Optimized
+            Nishant N
           </p>
         </footer>
       </div>
