@@ -57,13 +57,27 @@ export default function VoicePage() {
       }
       synthRef.current = window.speechSynthesis
     }
+
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop()
+      }
+      if (synthRef.current) {
+        synthRef.current.cancel()
+      }
+    }
   }, [voiceMode])
 
   const startListening = () => {
     setCorrection(null)
     setTranscript('')
     setVoiceMode('listening')
-    recognitionRef.current?.start()
+    try {
+      recognitionRef.current?.start()
+    } catch (e) {
+      console.error("Speech Recognition Start Error:", e)
+      setVoiceMode('idle')
+    }
   }
 
   const stopListening = () => {
@@ -113,10 +127,11 @@ export default function VoicePage() {
       speakText(result.tutorMessage, 'de-DE')
 
       // Simple common mistake detection
-      if (userMsg.toLowerCase().includes('ich bin hunger') || userMsg.toLowerCase().includes('ich bin durst')) {
+      const lowercaseMsg = userMsg.toLowerCase();
+      if (lowercaseMsg.includes('ich bin hunger') || lowercaseMsg.includes('ich bin durst')) {
         const errResult = await correctVoiceChatError({
           userMessage: userMsg,
-          correctedMessage: userMsg.toLowerCase().includes('hunger') ? "Ich habe Hunger." : "Ich habe Durst.",
+          correctedMessage: lowercaseMsg.includes('hunger') ? "Ich habe Hunger." : "Ich habe Durst.",
           explanation: "In German, you say 'I have hunger' (Ich habe Hunger) instead of 'I am hungry'.",
           germanLevel: level
         })
@@ -143,7 +158,7 @@ export default function VoicePage() {
         variant: "destructive",
         title: isQuotaError ? "Quota Limit Reached" : "Connection Error",
         description: isQuotaError 
-          ? "The AI needs a minute to rest. Please try speaking again in about 60 seconds."
+          ? "The AI needs a minute to rest (free tier limit). Please try speaking again in about 60 seconds."
           : "Something went wrong. Please check your internet connection and try again."
       })
     }

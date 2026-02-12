@@ -111,7 +111,7 @@ function ChatContent() {
         variant: "destructive",
         title: isQuotaError ? "AI is taking a break" : "Connection Error",
         description: isQuotaError 
-          ? "We've hit the usage limit. Please wait about 60 seconds and try sending your message again."
+          ? "We've hit the usage limit for the free tier. Please wait about 60 seconds and try sending your message again."
           : "Something went wrong. Please check your internet connection."
       })
 
