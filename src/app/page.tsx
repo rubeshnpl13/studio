@@ -86,7 +86,7 @@ export default function Home() {
                 <ChevronRight className="w-6 h-6 text-muted-foreground group-hover:text-accent transition-colors" />
               </CardContent>
               <div className="absolute top-0 right-0">
-                <Badge className="rounded-none rounded-bl-lg bg-accent/20 text-accent hover:bg-accent/20 border-none">In_Progress</Badge>
+                <Badge className="rounded-none rounded-bl-lg bg-accent/20 text-accent hover:bg-accent/20 border-none">Currently in Progress</Badge>
               </div>
             </Card>
           </Link>
