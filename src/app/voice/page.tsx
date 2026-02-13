@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Mic, MicOff, Volume2, VolumeX, Sparkles, MessageSquareText } from 'lucide-react'
@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
 
 type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
-export default function VoicePage() {
+function VoicePage() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const level = (searchParams.get('level') || 'A1') as CEFRLevel
@@ -286,5 +286,16 @@ export default function VoicePage() {
         AI responses adapted for your level. Speak clearly.
       </footer>
     </div>
+  )
+}
+export default function VoiceApp() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen bg-background text-foreground">
+        Loading Voice Tutor...
+      </div>
+    }>
+      <VoicePage />
+    </Suspense>
   )
 }
