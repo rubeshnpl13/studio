@@ -152,14 +152,10 @@ function VoicePage() {
       console.error('Voice Processing Error:', error)
       setVoiceMode('idle')
       
-      const isQuotaError = error.message?.includes('429') || error.message?.includes('quota');
-      
       toast({
         variant: "destructive",
-        title: isQuotaError ? "Quota Limit Reached" : "Connection Error",
-        description: isQuotaError 
-          ? "The AI needs a minute to rest (free tier limit). Please try speaking again in about 60 seconds."
-          : "Something went wrong. Please check your internet connection and try again."
+        title: "AI Error",
+        description: "The AI is currently unavailable. Please try again in a moment."
       })
     }
   }

@@ -105,14 +105,10 @@ function ChatContent() {
     } catch (error: any) {
       console.error('Chat Feedback Error:', error)
       
-      const isQuotaError = error.message?.includes('429') || error.message?.includes('quota');
-      
       toast({
         variant: "destructive",
-        title: isQuotaError ? "AI is taking a break" : "Connection Error",
-        description: isQuotaError 
-          ? "We've hit the usage limit for the free tier. Please wait about 60 seconds and try sending your message again."
-          : "Something went wrong. Please check your internet connection."
+        title: "AI Error",
+        description: "The AI is currently unavailable. Please try again in a moment."
       })
 
       const errorMsg: Message = {
