@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect, useRef, Suspense } from 'react'
@@ -126,7 +125,6 @@ function VoicePage() {
 
       speakText(result.tutorMessage, 'de-DE')
 
-      // Simple common mistake detection
       const lowercaseMsg = userMsg.toLowerCase();
       if (lowercaseMsg.includes('ich bin hunger') || lowercaseMsg.includes('ich bin durst')) {
         const errResult = await correctVoiceChatError({
@@ -152,10 +150,14 @@ function VoicePage() {
       console.error('Voice Processing Error:', error)
       setVoiceMode('idle')
       
+      const isRateLimit = error?.message?.includes('429') || error?.message?.includes('quota');
+      
       toast({
         variant: "destructive",
-        title: "AI Error",
-        description: "The AI is currently unavailable. Please try again in a moment."
+        title: isRateLimit ? "Service Busy" : "AI Error",
+        description: isRateLimit 
+          ? "The AI is currently at its limit. Please wait about 60 seconds before speaking again." 
+          : "The AI is currently unavailable. Please try again in a moment."
       })
     }
   }
