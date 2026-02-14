@@ -1,15 +1,19 @@
 'use server';
 
 /**
- * @fileOverview Provides real-time feedback on German text input, including grammar and vocabulary corrections with explanations in English.
+ * @fileOverview Provides real-time feedback on German text input using Groq SDK.
  *
  * - textChatFeedback - A function that handles the text chat feedback process.
  * - TextChatFeedbackInput - The input type for the textChatFeedback function.
  * - TextChatFeedbackOutput - The return type for the textChatFeedback function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { z } from 'zod';
+import Groq from 'groq-sdk';
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
 const TextChatFeedbackInputSchema = z.object({
   germanText: z.string().describe('The German text input from the user.'),
@@ -32,48 +36,55 @@ const TextChatFeedbackOutputSchema = z.object({
 export type TextChatFeedbackOutput = z.infer<typeof TextChatFeedbackOutputSchema>;
 
 export async function textChatFeedback(input: TextChatFeedbackInput): Promise<TextChatFeedbackOutput> {
-  return textChatFeedbackFlow(input);
-}
-
-const prompt = ai.definePrompt({
-  name: 'textChatFeedbackPrompt',
-  input: {schema: TextChatFeedbackInputSchema},
-  output: {schema: TextChatFeedbackOutputSchema},
-  prompt: `You are a German language tutor providing feedback to a student.
-
-  The student is at level {{languageLevel}}. Their previous conversation, if any, is as follows:
+  const systemPrompt = `You are a helpful German language tutor. 
+  The student is at level ${input.languageLevel}.
   
-  {{#if conversationHistory}}
-  Conversation History:
-  {{conversationHistory}}
-  {{/if}}
+  Your task:
+  1. Correct any grammar or vocabulary mistakes in the student's input.
+  2. Provide a brief explanation in English for the corrections.
+  3. Ask a follow-up question in German appropriate for their level (${input.languageLevel}).
+  4. Provide an English translation for that follow-up question.
 
-  Their input is:
-  {{germanText}}
-
-  Correct any grammar and vocabulary mistakes in the student's input.
-  Provide explanations for the corrections in English, including the correct German form.
-  Ask a follow-up question in German to keep the conversation going, appropriate for the student's level.
-  Provide an English translation for that follow-up question.
-
-  The output should be formatted as a JSON object with the following keys:
-  - correctedText: The corrected German text.
-  - explanation: The explanation of the corrections in English.
-  - followUpQuestion: The follow-up question in German.
-  - englishTranslation: The English translation of the follow-up question.
-
-  Remember to adapt your vocabulary and grammar to the student's language level.
-  `,
-});
-
-const textChatFeedbackFlow = ai.defineFlow(
+  You must respond strictly in JSON format:
   {
-    name: 'textChatFeedbackFlow',
-    inputSchema: TextChatFeedbackInputSchema,
-    outputSchema: TextChatFeedbackOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+    "correctedText": "...",
+    "explanation": "...",
+    "followUpQuestion": "...",
+    "englishTranslation": "..."
+  }`;
+
+  const userMessage = `Student Input: "${input.germanText}"
+  ${input.conversationHistory ? `Context/History:\n${input.conversationHistory}` : ''}`;
+
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.7,
+      response_format: { type: 'json_object' },
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    if (!content) throw new Error("No response from Groq");
+
+    const parsed = JSON.parse(content);
+    return {
+      correctedText: parsed.correctedText,
+      explanation: parsed.explanation,
+      followUpQuestion: parsed.followUpQuestion,
+      englishTranslation: parsed.englishTranslation,
+    };
+
+  } catch (error) {
+    console.error("Groq Text Feedback Error:", error);
+    return {
+      correctedText: input.germanText,
+      explanation: "Entschuldigung, ich konnte das gerade nicht analysieren.",
+      followUpQuestion: "Können wir über etwas anderes sprechen?",
+      englishTranslation: "Can we talk about something else?"
+    };
   }
-);
+}
