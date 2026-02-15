@@ -73,7 +73,8 @@ export default function Home() {
             </Card>
           </Link>
 
-          <Link href={`/voice?level=${level}`}>
+          {/* <Link href={`/voice?level=${level}`}> */}
+          <Link href="" >
             <Card className="hover:border-accent cursor-pointer transition-all duration-300 group overflow-hidden bg-card/40 backdrop-blur-sm border-2">
               <CardContent className="p-6 flex items-center gap-6">
                 <div className="w-14 h-14 rounded-full bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
