@@ -95,7 +95,7 @@ export default function Home() {
 
         <footer className="text-center">
           <p className="text-xs text-muted-foreground/60">
-            Nishant N
+            Groq
           </p>
         </footer>
       </div>
