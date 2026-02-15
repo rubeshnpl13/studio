@@ -18,5 +18,5 @@ export const LEVELS: { id: CEFRLevel; label: string; desc: string }[] = [
   { id: 'A1', label: 'Beginner', desc: 'Simple greetings, basic sentences.' },
   { id: 'A2', label: 'Elementary', desc: 'Everyday topics, simple past.' },
   { id: 'B1', label: 'Intermediate', desc: 'Opinions, future plans, experiences.' },
-  { id: 'B2', label: 'Upper Intermediate', desc: 'Abstract topics, complex grammar.' },
+  { id: 'B2', label: 'Advanced', desc: 'Abstract topics, complex grammar.' },
 ];
